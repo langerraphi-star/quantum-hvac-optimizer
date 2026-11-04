@@ -1,67 +1,72 @@
-# Quantum Optimization for HVAC Equipment Selection
+# Quantum HVAC Optimization with QAOA
 
-## Overview
+**Raphael Langer | Independent project | October 2026**
 
-This project investigates the use of quantum optimization methods for a simplified HVAC equipment-selection problem. Given equipment options with different capacities and costs, the objective is to select a combination that meets a specified demand while minimizing cost.
+An exploration of the Quantum Approximate Optimization Algorithm (QAOA) for selecting HVAC equipment to satisfy a cooling load while minimizing electrical power consumption. The project develops a classical baseline, formulates a QUBO, maps it to an Ising cost Hamiltonian, and evaluates QAOA using exact statevectors, shot-based simulation, a noise model, and IBM quantum hardware.
 
-The project is a learning and research exploration of **quadratic unconstrained binary optimization (QUBO)**, its mapping to an **Ising Hamiltonian**, and the **Quantum Approximate Optimization Algorithm (QAOA)** implemented with Qiskit. It does not claim quantum advantage.
+## Problem
 
-## Problem formulation
+Three independently switched air-conditioning units must meet a **100 kW cooling demand**:
 
-For binary equipment-selection variables \(x_i \in \{0,1\}\), the basic optimization problem is:
+| Unit | Cooling capacity | Power consumption |
+| --- | ---: | ---: |
+| A | 50 kW | 10 kW |
+| B | 75 kW | 17 kW |
+| C | 100 kW | 25 kW |
 
-\[
-\min \sum_i c_i x_i
-\quad \text{subject to} \quad
-\sum_i q_i x_i \ge D,
-\]
-
-where \(c_i\) is equipment cost, \(q_i\) is equipment capacity, and \(D\) is required capacity.
-
-The illustrative test instance uses:
-
-| Equipment | Capacity | Cost (arbitrary units) |
-|---|---:|---:|
-| A | 50 kW | 10 |
-| B | 75 kW | 17 |
-| C | 100 kW | 25 |
-
-Required capacity: **100 kW**. Slack variables and a finite penalty coefficient are used to express the constrained problem as a QUBO.
+The classical optimum is **A OFF, B OFF, C ON**, delivering 100 kW of cooling while consuming 25 kW of power.
 
 ## Approach
 
-1. Encode equipment choices and the demand constraint as a QUBO.
-2. Convert the QUBO objective into an Ising cost Hamiltonian.
-3. Build parameterized QAOA circuits with Qiskit.
-4. Optimize QAOA parameters using a classical optimizer (including COBYLA experiments).
-5. Compare candidate solutions with the classical optimum and examine the effect of QAOA depth and parameter choices.
+1. **Classical baseline:** Enumerate equipment configurations and identify the minimum-power feasible selection.
+2. **QUBO formulation:** Use three equipment-selection bits and seven binary slack bits to represent excess cooling, giving a **10-bit / 10-qubit** problem. A penalty term encodes the cooling constraint.
+3. **Ising mapping:** Convert binary variables to spin variables and construct the corresponding Pauli-Z and ZZ cost terms.
+4. **QAOA circuit:** Prepare a uniform superposition with Hadamard gates, apply cost-phase rotations (`RZ`, `RZZ`), then mixer rotations (`RX`). Tune variational parameters using classical optimization with SciPy.
+5. **Evaluation:** Compare exact statevector expectations, ideal shot-based results, noisy simulation, and an IBM quantum processor run.
 
-## Current status and limitations
+## Results
 
-An initial depth-one QAOA implementation has been explored. Early experiments indicate that finding high-quality solutions is challenging for the current parameterization. Results are preliminary and should not be interpreted as evidence of quantum speedup or advantage.
+The October 2026 report describes the following **one-layer QAOA** results (simulation samples vary between runs):
 
-Planned improvements include testing deeper QAOA circuits, normalizing or rescaling the cost Hamiltonian, running multiple optimizer restarts, and benchmarking against exact classical enumeration or optimization.
+| Evaluation | Mean / expected QUBO cost | Probability of optimal state | Probability of cooling-feasible state |
+| --- | ---: | ---: | ---: |
+| Exact statevector | 2,372.575 | — | — |
+| Ideal shot-based simulation (10,000 shots) | 2,433.2 | 0.25% | 84.0% |
+| Noisy simulation (10,000 shots) | 3,125.4 | 0.23% | 81.4% |
+| IBM quantum hardware (2,000 shots) | 3,977.1 | 0.4% | 70.4% |
 
-## Repository contents
+The exact statevector expectation was **72.2% lower** than the uniform-state expected QUBO cost of 8,523.5. The reported optimized one-layer parameters were **γ = 0.7046** and **β = −0.3453**.
 
-- **Code:** QUBO construction, QAOA circuits, and optimization experiments (see the uploaded Python scripts or notebooks).
-- **Report:** Detailed derivations, methodology, experiments, and discussion (see the uploaded report PDF).
-- **Figures:** Plots and experiment outputs, if included.
+The hardware experiment used **IBM Kingston** (job ID `dbf8b77pc3tc739muohg`). The circuit depth increased from **21** to **250** after transpilation, with **148 two-qubit gates**. These figures are from the accompanying report; they are not claimed as freshly reproduced benchmarks.
 
-> Update the filenames and links in this section after uploading the actual files.
+**Interpretation:** The experiment does **not** establish quantum advantage. The optimal configuration remains rare in the measured distribution, and the noise and transpilation overhead degrade aggregate performance. The reduction relative to the uniform distribution is not a comparison against the classical optimum.
 
-## Running the project
+## Files
 
-This project uses **Python** and **Qiskit**, with scientific Python libraries such as **NumPy** and **SciPy**. Refer to the imports in the uploaded scripts/notebooks for the exact package requirements and versions.
+- [`Quantum HVAC Project Report.pdf`](Quantum%20HVAC%20Project%20Report.pdf) — project write-up, mathematical formulation, circuit design, results, and limitations.
+- `Quantum HVAC Project Part 1.py` through `Quantum HVAC Project Part 10.py` — sequential development scripts, from classical enumeration and quantum fundamentals to QUBO/Ising construction and QAOA experiments.
+- `requirements.txt` — main Python packages used in the scripts.
 
-If a `requirements.txt` is provided, install dependencies with:
+**Note:** These scripts were exported from an interactive development workflow. Some earlier parts rely on variables/imports defined in prior cells or parts; they are provided as a record of development and are **not presented as ten standalone, independently executable programs**. Hardware experiments additionally require authorized IBM Quantum access and may incur usage restrictions.
+
+## Setup
 
 ```bash
-python -m pip install -r requirements.txt
+python -m venv .venv
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-Then open the notebook in Jupyter or run the relevant Python script. Execution steps and package versions should be verified against the uploaded code before publishing.
+The code was developed interactively, so run sections in their original order with the required variables initialized. The report is the recommended starting point for reviewing the completed experiment. No IBM Quantum credentials are included in this repository.
 
-## Research motivation
+## Limitations and future work
 
-The broader motivation is to understand how quantum algorithms can be formulated, implemented, and evaluated for engineering optimization problems, and to explore their potential applicability to more complex scheduling, control, and autonomous-system problems.
+- Explore alternative penalty scaling to avoid disproportionately large costs for infeasible configurations.
+- Reduce circuit complexity and transpilation overhead on hardware.
+- Evaluate additional QAOA depths and parameter-search strategies where practical.
+- Extend the model to larger and more realistic HVAC equipment scheduling problems, with clear classical baselines.
+
+This is an exploratory research/learning project, not a production HVAC control system.
