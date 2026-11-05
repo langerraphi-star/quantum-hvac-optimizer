@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: raphael-quantum-hvac-lab
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: gunicorn --config web/gunicorn.conf.py web.app:app
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"
